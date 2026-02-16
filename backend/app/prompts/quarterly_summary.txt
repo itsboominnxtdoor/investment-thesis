@@ -1,0 +1,14 @@
+You are a senior equity research analyst summarizing a quarterly filing.
+
+FILING TEXT:
+{filing_text}
+
+{prior_snapshot_section}
+
+Generate a structured quarterly summary. Respond with a JSON object containing exactly these fields:
+- "executive_summary": A 2-3 paragraph summary of the quarter's key results and themes.
+- "key_changes": A JSON array of 4-8 strings describing the most significant changes from the prior period.
+- "guidance_update": A paragraph summarizing any forward guidance provided by management, or null if none.
+- "management_commentary": Key quotes or themes from management discussion, or null if not available.
+
+Return ONLY the JSON object, no markdown fences or other text.

@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException, Query
 
 from app.dependencies import DBSession
 from app.schemas.financial_snapshot import FinancialSnapshotList, FinancialSnapshotRead
+from app.services.financial_ingestion_service import FinancialIngestionService
 from app.services.financial_service import FinancialService
 
 router = APIRouter(prefix="/companies/{company_id}/financials", tags=["financials"])
@@ -27,4 +28,17 @@ async def get_latest_snapshot(db: DBSession, company_id: UUID):
     snapshot = await service.get_latest(company_id)
     if not snapshot:
         raise HTTPException(status_code=404, detail="No financial snapshots found")
+    return snapshot
+
+
+@router.post("/ingest", response_model=FinancialSnapshotRead)
+async def ingest_financials(db: DBSession, company_id: UUID):
+    """Fetch latest financials from FMP and store in database."""
+    service = FinancialIngestionService(db)
+    try:
+        snapshot = await service.ingest_latest_financials(company_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(status_code=429, detail=str(e))
     return snapshot

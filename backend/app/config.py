@@ -18,6 +18,7 @@ class Settings(BaseSettings):
 
     EDGAR_USER_AGENT: str = "ThesisEngine admin@example.com"
     FINANCIAL_DATA_API_KEY: str = ""
+    FMP_API_BASE_URL: str = "https://financialmodelingprep.com"
 
     CORS_ORIGINS: list[str] = ["http://localhost:3000"]
 

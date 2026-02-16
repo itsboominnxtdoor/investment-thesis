@@ -16,6 +16,8 @@ dependencies = [
     "anthropic>=0.42,<1",
     "boto3>=1.35,<2",
     "python-multipart>=0.0.18",
+    "beautifulsoup4>=4.12,<5",
+    "lxml>=5.0,<6",
 ]
 
 [project.optional-dependencies]

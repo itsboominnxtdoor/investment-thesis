@@ -1,4 +1,5 @@
 import type {
+  BusinessProfile,
   Company,
   Document,
   FinancialSnapshot,
@@ -61,6 +62,12 @@ export function getLatestFinancials(companyId: string) {
   return fetchJSON<FinancialSnapshot>(`/api/v1/companies/${companyId}/financials/latest`);
 }
 
+export function ingestFinancials(companyId: string) {
+  return fetchJSON<FinancialSnapshot>(`/api/v1/companies/${companyId}/financials/ingest`, {
+    method: "POST",
+  });
+}
+
 // Thesis
 export function listThesisVersions(companyId: string, params?: { page?: number; per_page?: number }) {
   const sp = new URLSearchParams();
@@ -74,6 +81,23 @@ export function listThesisVersions(companyId: string, params?: { page?: number; 
 
 export function getLatestThesis(companyId: string) {
   return fetchJSON<ThesisVersion>(`/api/v1/companies/${companyId}/thesis/latest`);
+}
+
+export function generateThesis(companyId: string) {
+  return fetchJSON<ThesisVersion>(`/api/v1/companies/${companyId}/thesis/generate`, {
+    method: "POST",
+  });
+}
+
+// Business Profiles
+export function getBusinessProfile(companyId: string) {
+  return fetchJSON<BusinessProfile>(`/api/v1/companies/${companyId}/business-profile`);
+}
+
+export function generateBusinessProfile(companyId: string) {
+  return fetchJSON<BusinessProfile>(`/api/v1/companies/${companyId}/business-profile/generate`, {
+    method: "POST",
+  });
 }
 
 // Quarterly Updates
