@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 const SECTORS = [
@@ -17,7 +18,7 @@ const SECTORS = [
   "Communication Services",
 ];
 
-export function SectorFilter() {
+function SectorFilterInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const current = searchParams.get("sector") ?? "";
@@ -45,5 +46,13 @@ export function SectorFilter() {
         </option>
       ))}
     </select>
+  );
+}
+
+export function SectorFilter() {
+  return (
+    <Suspense>
+      <SectorFilterInner />
+    </Suspense>
   );
 }

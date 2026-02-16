@@ -1,9 +1,10 @@
 "use client";
 
+import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
-export function SearchBar() {
+function SearchBarInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [value, setValue] = useState(searchParams.get("search") ?? "");
@@ -36,5 +37,13 @@ export function SearchBar() {
         Search
       </button>
     </form>
+  );
+}
+
+export function SearchBar() {
+  return (
+    <Suspense>
+      <SearchBarInner />
+    </Suspense>
   );
 }
