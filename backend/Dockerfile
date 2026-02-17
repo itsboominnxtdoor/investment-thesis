@@ -1,12 +1,14 @@
-FROM python:3.12-slim AS base
-WORKDIR /app
-RUN apt-get update && apt-get install -y --no-install-recommends gcc && rm -rf /var/lib/apt/lists/*
+FROM python:3.12-slim
 
-FROM base AS deps
+WORKDIR /app
+
+# Copy dependency definition first for layer caching
 COPY pyproject.toml .
+
+# Install the project and its dependencies
 RUN pip install --no-cache-dir .
 
-FROM deps AS runtime
+# Copy the rest of the application
 COPY . .
-EXPOSE 8000
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]
