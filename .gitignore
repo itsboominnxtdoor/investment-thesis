@@ -13,6 +13,8 @@ node_modules/
 # Environment
 .env
 .env.local
+backend/.env
+frontend/.env.local
 
 # IDE
 .idea/

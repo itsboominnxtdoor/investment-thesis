@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  output: 'standalone',
   async rewrites() {
     const backendUrl = process.env.API_BACKEND_URL;
     if (!backendUrl) return [];
