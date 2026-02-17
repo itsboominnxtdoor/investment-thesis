@@ -1,10 +1,10 @@
-"""LLM service for thesis generation and analysis using Anthropic Claude."""
+"""LLM service for thesis generation and analysis using Groq (Llama 3)."""
 
 import json
 import logging
 from pathlib import Path
 
-import anthropic
+from groq import AsyncGroq
 
 from app.config import settings
 
@@ -29,22 +29,23 @@ def _parse_json_response(text: str) -> dict:
 
 
 class LLMService:
-    """Generates investment theses and analyses using Claude."""
+    """Generates investment theses and analyses using Groq (Llama 3)."""
 
     def __init__(self):
-        self.model = settings.ANTHROPIC_MODEL
-        self.api_key = settings.ANTHROPIC_API_KEY
-        self.client = anthropic.AsyncAnthropic(api_key=self.api_key)
+        self.model = settings.LLM_MODEL
+        self.client = AsyncGroq(api_key=settings.GROQ_API_KEY)
 
     async def _call(self, system: str, user_prompt: str, temperature: float = 0.3) -> str:
-        message = await self.client.messages.create(
+        chat_completion = await self.client.chat.completions.create(
             model=self.model,
             max_tokens=4096,
             temperature=temperature,
-            system=system,
-            messages=[{"role": "user", "content": user_prompt}],
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": user_prompt},
+            ],
         )
-        return message.content[0].text
+        return chat_completion.choices[0].message.content
 
     async def generate_business_profile(self, company_data: dict, filing_text: str) -> dict:
         """Generate a structured business profile from filing data."""
@@ -55,7 +56,7 @@ class LLMService:
             exchange=company_data.get("exchange", ""),
             sector=company_data.get("sector", ""),
             industry=company_data.get("industry", ""),
-            filing_text=filing_text[:60000],
+            filing_text=filing_text[:30000],
         )
 
         response = await self._call(
@@ -158,7 +159,7 @@ class LLMService:
             )
 
         prompt = prompt_template.format(
-            filing_text=filing_text[:60000],
+            filing_text=filing_text[:30000],
             prior_snapshot_section=prior_snapshot_section,
         )
 

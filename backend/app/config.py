@@ -1,3 +1,4 @@
+from pydantic import model_validator
 from pydantic_settings import BaseSettings
 
 
@@ -6,10 +7,21 @@ class Settings(BaseSettings):
 
     DATABASE_URL: str = "postgresql+asyncpg://thesis:thesis_dev@localhost:5432/thesis_engine"
     DATABASE_URL_SYNC: str = "postgresql://thesis:thesis_dev@localhost:5432/thesis_engine"
+
+    @model_validator(mode="after")
+    def _fix_database_urls(self):
+        # Railway provides postgresql:// but asyncpg needs postgresql+asyncpg://
+        if self.DATABASE_URL.startswith("postgresql://"):
+            self.DATABASE_URL_SYNC = self.DATABASE_URL
+            self.DATABASE_URL = self.DATABASE_URL.replace(
+                "postgresql://", "postgresql+asyncpg://", 1
+            )
+        return self
+
     REDIS_URL: str = "redis://localhost:6379/0"
 
-    ANTHROPIC_API_KEY: str = ""
-    ANTHROPIC_MODEL: str = "claude-sonnet-4-5-20250929"
+    GROQ_API_KEY: str = ""
+    LLM_MODEL: str = "llama-3.3-70b-versatile"
 
     S3_BUCKET_NAME: str = "thesis-engine-docs"
     S3_REGION: str = "us-east-1"
