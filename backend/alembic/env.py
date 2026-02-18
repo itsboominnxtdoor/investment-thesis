@@ -21,14 +21,20 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
+    from sqlalchemy import text
+
     configuration = config.get_section(config.config_ini_section, {})
-    configuration["sqlalchemy.url"] = settings.DATABASE_URL_SYNC
+    url = settings.DATABASE_URL_SYNC
+    # Add connect timeout to avoid hanging on Railway
+    connector = "?" if "?" not in url else "&"
+    configuration["sqlalchemy.url"] = url + connector + "connect_timeout=10"
     connectable = engine_from_config(
         configuration,
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
     with connectable.connect() as connection:
+        connection.execute(text("SET lock_timeout = '10s'"))
         context.configure(connection=connection, target_metadata=target_metadata)
         with context.begin_transaction():
             context.run_migrations()
