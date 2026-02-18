@@ -27,10 +27,68 @@ async def list_thesis_versions(
 
 @router.get("/latest", response_model=ThesisVersionRead)
 async def get_latest_thesis(db: DBSession, company_id: UUID):
+    """Get latest thesis. Auto-generates if missing."""
     service = ThesisService(db)
     thesis = await service.get_latest(company_id)
+    
+    # Auto-generate if no thesis exists
     if not thesis:
-        raise HTTPException(status_code=404, detail="No thesis versions found")
+        from app.services.company_service import CompanyService
+        from app.services.financial_service import FinancialService
+        from app.services.llm_service import LLMService
+        
+        company_svc = CompanyService(db)
+        company = await company_svc.get_by_id(company_id)
+        if not company:
+            raise HTTPException(status_code=404, detail="Company not found")
+        
+        fin_svc = FinancialService(db)
+        snapshot = await fin_svc.get_latest(company_id)
+        
+        if not snapshot:
+            # Auto-ingest financials first
+            from app.services.financial_ingestion_service import FinancialIngestionService
+            ingestion = FinancialIngestionService(db)
+            try:
+                snapshot = await ingestion.ingest_latest_financials(company_id)
+            except Exception as e:
+                raise HTTPException(status_code=400, detail=f"Could not ingest financials: {e}")
+        
+        # Generate thesis
+        llm = LLMService()
+        company_data = {
+            "name": company.name,
+            "ticker": company.ticker,
+            "sector": company.sector,
+            "industry": company.industry,
+        }
+        snapshot_data = {
+            "revenue": str(snapshot.revenue) if snapshot.revenue else "N/A",
+            "net_income": str(snapshot.net_income) if snapshot.net_income else "N/A",
+            "ebitda": str(snapshot.ebitda) if snapshot.ebitda else "N/A",
+            "eps_diluted": str(snapshot.eps_diluted) if snapshot.eps_diluted else "N/A",
+            "gross_margin": str(snapshot.gross_margin) if snapshot.gross_margin else "N/A",
+            "operating_margin": str(snapshot.operating_margin) if snapshot.operating_margin else "N/A",
+            "free_cash_flow": str(snapshot.free_cash_flow) if snapshot.free_cash_flow else "N/A",
+            "total_debt": str(snapshot.total_debt) if snapshot.total_debt else "N/A",
+            "cash_and_equivalents": str(snapshot.cash_and_equivalents) if snapshot.cash_and_equivalents else "N/A",
+            "debt_to_equity": str(snapshot.debt_to_equity) if snapshot.debt_to_equity else "N/A",
+        }
+        
+        try:
+            result = await llm.generate_thesis(company_data, snapshot_data, {})
+            result["llm_model_used"] = settings.LLM_MODEL
+            
+            thesis_svc = ThesisService(db)
+            thesis = await thesis_svc.create_version(
+                company_id=company_id,
+                snapshot_id=snapshot.id,
+                thesis_data=result,
+                prior_version=None,
+            )
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Thesis generation failed: {e}")
+    
     return thesis
 
 

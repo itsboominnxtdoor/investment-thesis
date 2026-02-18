@@ -84,10 +84,31 @@ async def list_companies(
 
 @router.get("/{company_id}", response_model=CompanyRead)
 async def get_company(db: DBSession, company_id: UUID):
+    """Get company details. Auto-ingests financials if missing."""
     service = CompanyService(db)
     company = await service.get_by_id(company_id)
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
+    
+    # Auto-ingest if no financials exist
+    from sqlalchemy import select
+    from app.models.financial_snapshot import FinancialSnapshot
+    
+    existing = await db.execute(
+        select(FinancialSnapshot).where(
+            FinancialSnapshot.company_id == company_id
+        ).limit(1)
+    )
+    if not existing.scalar_one_or_none():
+        # Trigger background ingestion (don't wait for response)
+        logger.info("Auto-ingesting financials for %s", company.ticker)
+        try:
+            ingestion = FinancialIngestionService(db)
+            snapshot = await ingestion.ingest_latest_financials(company_id)
+            logger.info("Auto-ingest completed for %s", company.ticker)
+        except Exception as e:
+            logger.warning("Auto-ingest failed for %s: %s", company.ticker, e)
+    
     return company
 
 

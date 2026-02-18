@@ -19,6 +19,17 @@ async def list_snapshots(
 ):
     service = FinancialService(db)
     items, total = await service.list_snapshots(company_id, page=page, per_page=per_page)
+    
+    # Auto-ingest if no snapshots exist
+    if not items:
+        try:
+            ingestion = FinancialIngestionService(db)
+            await ingestion.ingest_latest_financials(company_id)
+            # Retry fetching
+            items, total = await service.list_snapshots(company_id, page=page, per_page=per_page)
+        except Exception as e:
+            pass  # Return empty, user can retry
+    
     return FinancialSnapshotList(items=items, total=total, page=page, per_page=per_page)
 
 
@@ -26,6 +37,15 @@ async def list_snapshots(
 async def get_latest_snapshot(db: DBSession, company_id: UUID):
     service = FinancialService(db)
     snapshot = await service.get_latest(company_id)
+    
+    # Auto-ingest if no snapshot exists
+    if not snapshot:
+        try:
+            ingestion = FinancialIngestionService(db)
+            snapshot = await ingestion.ingest_latest_financials(company_id)
+        except Exception as e:
+            raise HTTPException(status_code=404, detail=f"No snapshot available: {e}")
+    
     if not snapshot:
         raise HTTPException(status_code=404, detail="No financial snapshots found")
     return snapshot
