@@ -326,3 +326,49 @@ LLM must not calculate or extract numeric tables.
 - Output quality ≈ junior equity analyst memo
 - Zero hallucinated financial data
 - Becomes core weekly research workflow
+
+---
+
+## 10. Current Deployment Status & Known Issues (Railway)
+
+**Last updated: 2026-02-18**
+
+### What's Working
+- Frontend live at: https://investment-thesis-r1ev.vercel.app
+- Backend live at: https://investment-thesis-production.up.railway.app
+- `/health` returns `{"status": "ok"}` when backend is up
+- Alembic migrations connect to Railway PostgreSQL successfully
+- All 38 backend tests passing locally
+
+### Active Problem: Railway Healthcheck Failure
+
+The backend is failing Railway's healthcheck on every deploy. Root causes fixed so far:
+
+1. ✅ `ModuleNotFoundError: No module named 'app'` — Fixed by reordering Dockerfile so `COPY . .` happens before `pip install .`, allowing setuptools to find and install the `app` package properly.
+2. ✅ Missing `psycopg2-binary` — Added to `pyproject.toml` so Alembic can make synchronous DB connections.
+3. ✅ Healthcheck timeout too short — Increased from 30s to 120s in `railway.toml`.
+4. ✅ Seed script blocking startup — Removed `python -m scripts.seed_companies` from the start command (was blocking uvicorn from starting within the healthcheck window).
+5. 🔄 Potential DB lock hang — Added `connect_timeout=10` and `SET lock_timeout = '10s'` to `alembic/env.py` to prevent Alembic hanging on stale locks from previous failed deploys.
+6. 🔄 Switched from Docker to Nixpacks — Removed `dockerfilePath` from `railway.toml` so Railway uses its native Python build system (faster, better caching).
+
+### Current Start Command (railway.toml)
+```
+alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080}
+```
+
+### Required Railway Environment Variables
+```
+DATABASE_URL        — auto-injected by Railway Postgres addon
+GROQ_API_KEY        — Groq API key (llama-3.3-70b-versatile)
+FINANCIAL_DATA_API_KEY — Financial Modeling Prep API key
+EDGAR_USER_AGENT    — e.g. "ThesisEngine admin@example.com"
+CORS_ORIGINS        — https://investment-thesis-r1ev.vercel.app
+LOG_FORMAT          — json
+```
+
+### After Successful Deploy
+Once the backend is healthy, seed the companies table by calling:
+```
+POST https://investment-thesis-production.up.railway.app/api/v1/companies/bulk-ingest
+```
+This triggers ingestion for all ~500 S&P 500 + TSX 60 companies via the sync fallback (no Celery required).
