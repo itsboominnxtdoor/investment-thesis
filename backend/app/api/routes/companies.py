@@ -127,6 +127,9 @@ async def ingest_company(db: DBSession, company_id: UUID):
     except ValueError as e:
         snapshot = None
         steps_completed.append(f"financials:skipped ({e})")
+    except Exception as e:
+        logger.exception("Financial ingestion failed for %s", company.ticker)
+        raise HTTPException(status_code=500, detail=f"Financial ingestion failed: {e}")
 
     # Step 2: Generate thesis (requires snapshot)
     if snapshot:
@@ -154,7 +157,7 @@ async def ingest_company(db: DBSession, company_id: UUID):
             thesis_result = await llm.generate_thesis(company_data, snapshot_data, {})
             steps_completed.append("thesis")
         except Exception as e:
-            logger.error("Thesis generation failed for %s: %s", company.ticker, e)
+            logger.exception("Thesis generation failed for %s", company.ticker)
             steps_completed.append(f"thesis:failed ({e})")
 
     return IngestResult(
