@@ -42,9 +42,13 @@ class Settings(BaseSettings):
     GROQ_API_KEY: str = ""
     LLM_MODEL: str = "llama-3.3-70b-versatile"
 
-    # Yahoo Finance (free, no API key needed)
-    FINANCIAL_DATA_API_KEY: str = ""  # Not needed for Yahoo Finance
-    FMP_API_BASE_URL: str = "https://financialmodelingprep.com"  # Legacy, kept for compatibility
+    # Alpha Vantage API key (free) - for financial data
+    # Get at: https://www.alphavantage.co/support/#api-key
+    ALPHA_VANTAGE_API_KEY: str = ""
+
+    # Yahoo Finance (free, no API key needed) - fallback
+    FINANCIAL_DATA_API_KEY: str = ""  # FMP key (legacy, not working)
+    FMP_API_BASE_URL: str = "https://financialmodelingprep.com"  # Legacy
 
     # S3 Storage (for filing documents)
     S3_BUCKET_NAME: str = "thesis-engine-docs"
