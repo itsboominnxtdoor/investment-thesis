@@ -1,6 +1,5 @@
 import { BusinessProfileView } from "@/components/BusinessProfileView";
 import { FinancialSnapshotView } from "@/components/FinancialSnapshot";
-import { GenerateButton } from "@/components/GenerateThesisButton";
 import { QuarterlyTimeline } from "@/components/QuarterlyTimeline";
 import { RevenueChart } from "@/components/RevenueChart";
 import { ThesisCard } from "@/components/ThesisCard";
@@ -84,10 +83,10 @@ export default async function CompanyDetailPage({ params }: Props) {
       <div className="mb-8 overflow-hidden rounded-3xl bg-gradient-to-br from-gray-50 to-gray-100 p-6 dark:from-gray-800 dark:to-gray-900">
         <div className="flex flex-wrap items-center gap-4">
           {/* Company Logo/Initial */}
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 shadow-md">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 shadow-md shadow-amber-500/30">
             <span className="text-2xl font-bold text-white">{company.name.charAt(0).toUpperCase()}</span>
           </div>
-          
+
           <div className="flex-1">
             <div className="flex flex-wrap items-center gap-3">
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{company.name}</h1>
@@ -102,7 +101,7 @@ export default async function CompanyDetailPage({ params }: Props) {
               <span>{company.currency}</span>
             </p>
           </div>
-          
+
           {/* Quick actions */}
           <div className="hidden sm:block">
             <a
@@ -128,38 +127,24 @@ export default async function CompanyDetailPage({ params }: Props) {
             content: (
               <div className="space-y-6">
                 <section>
-                  <div className="mb-4 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-cyan-600">
-                        <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                      </div>
-                      <h2 className="text-lg font-semibold text-gray-900">Business Profile</h2>
+                  <div className="mb-4 flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-cyan-600">
+                      <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
                     </div>
-                    <GenerateButton
-                      companyId={company.id}
-                      action="profile"
-                      label={profile ? "Regenerate Profile" : "Generate Profile"}
-                    />
+                    <h2 className="text-lg font-semibold text-gray-900">Business Profile</h2>
                   </div>
                   <BusinessProfileView profile={profile} />
                 </section>
                 <section>
-                  <div className="mb-4 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-purple-600">
-                        <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
-                      </div>
-                      <h2 className="text-lg font-semibold text-gray-900">Investment Thesis</h2>
+                  <div className="mb-4 flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 to-orange-500">
+                      <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
                     </div>
-                    <GenerateButton
-                      companyId={company.id}
-                      action="thesis"
-                      label={thesis ? "Regenerate Thesis" : "Generate Thesis"}
-                    />
+                    <h2 className="text-lg font-semibold text-gray-900">Investment Thesis</h2>
                   </div>
                   <ThesisCard thesis={thesis} />
                 </section>
@@ -171,20 +156,13 @@ export default async function CompanyDetailPage({ params }: Props) {
             label: "Financials",
             content: (
               <div className="space-y-6">
-                <div className="mb-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-green-500 to-emerald-600">
-                      <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                      </svg>
-                    </div>
-                    <h2 className="text-lg font-semibold text-gray-900">Financial Snapshots</h2>
+                <div className="mb-4 flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-green-500 to-emerald-600">
+                    <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                    </svg>
                   </div>
-                  <GenerateButton
-                    companyId={company.id}
-                    action="financials"
-                    label={financials ? "Ingest Latest" : "Ingest Financials"}
-                  />
+                  <h2 className="text-lg font-semibold text-gray-900">Financial Snapshots</h2>
                 </div>
                 {snapshotsList.length > 1 && (
                   <RevenueChart snapshots={snapshotsList} currency={company.currency} />
@@ -244,7 +222,7 @@ export default async function CompanyDetailPage({ params }: Props) {
                   </div>
                 ) : (
                   <Card>
-                    <p className="text-gray-500">No thesis versions yet. Generate one from the Overview tab.</p>
+                    <p className="text-gray-500">No thesis versions available.</p>
                   </Card>
                 )}
               </div>
@@ -252,17 +230,10 @@ export default async function CompanyDetailPage({ params }: Props) {
           },
           {
             id: "quarterly",
-            label: "Quarterly Updates",
+            label: "Quarterly",
             content: (
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold">Quarterly Updates</h2>
-                  <GenerateButton
-                    companyId={company.id}
-                    action="quarterly"
-                    label={quarterlyData && quarterlyData.items.length > 0 ? "Regenerate Latest" : "Generate Update"}
-                  />
-                </div>
+                <h2 className="text-lg font-semibold">Quarterly Updates</h2>
                 <QuarterlyTimeline
                   updates={quarterlyData?.items ?? []}
                   snapshots={snapshotsList}
@@ -314,7 +285,7 @@ export default async function CompanyDetailPage({ params }: Props) {
                   </div>
                 ) : (
                   <Card>
-                    <p className="text-gray-500">No documents available yet.</p>
+                    <p className="text-gray-500">No documents available.</p>
                   </Card>
                 )}
               </div>
