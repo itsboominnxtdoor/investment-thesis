@@ -8,5 +8,8 @@ COPY . .
 # Install the project and its dependencies (including psycopg2-binary)
 RUN pip install --no-cache-dir ".[dev]"
 
+# Make startup script executable
+RUN chmod +x start.sh
+
 # Run migrations and start server
-CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080}"]
+CMD ["./start.sh"]
