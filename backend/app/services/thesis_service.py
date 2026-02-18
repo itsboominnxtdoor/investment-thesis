@@ -3,6 +3,7 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.models.thesis_version import ThesisVersion
 
 
@@ -73,7 +74,7 @@ class ThesisService:
             prior_version_id=prior_version.id if prior_version else None,
             drift_summary=thesis_data.get("drift_summary"),
             conviction_direction=thesis_data.get("conviction_direction"),
-            llm_model_used=thesis_data.get("llm_model_used", "claude-sonnet-4-5-20250929"),
+            llm_model_used=thesis_data.get("llm_model_used", settings.LLM_MODEL),
         )
         self.db.add(thesis)
         await self.db.commit()

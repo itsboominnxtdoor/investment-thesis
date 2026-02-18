@@ -16,6 +16,17 @@ class FinancialDataService:
         self.api_key = settings.FINANCIAL_DATA_API_KEY
         self.base_url = settings.FMP_API_BASE_URL
 
+    @staticmethod
+    def resolve_fmp_ticker(ticker: str, exchange: str | None = None) -> str:
+        """Resolve a ticker to FMP format. TSX tickers need a .TO suffix."""
+        if exchange == "TSX":
+            # Strip existing .TO suffix to avoid double-appending
+            base = ticker.removesuffix(".TO")
+            # FMP uses .TO for TSX tickers; handle special TSX suffixes
+            base = base.replace(".UN", "-UN").replace(".B", "-B")
+            return f"{base}.TO"
+        return ticker
+
     def _client(self) -> httpx.AsyncClient:
         return httpx.AsyncClient(base_url=self.base_url, timeout=30.0)
 

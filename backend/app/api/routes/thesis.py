@@ -123,7 +123,7 @@ async def generate_thesis(db: DBSession, company_id: UUID):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"LLM generation failed: {e}")
 
-    result["llm_model_used"] = settings.ANTHROPIC_MODEL
+    result["llm_model_used"] = settings.LLM_MODEL
 
     thesis = await thesis_svc.create_version(
         company_id=company_id,

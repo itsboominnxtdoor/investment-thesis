@@ -17,6 +17,28 @@ services:
     volumes:
       - redisdata:/data
 
+  celery-worker:
+    build: ./backend
+    command: celery -A app.tasks.celery_app worker --loglevel=info --concurrency=2
+    env_file: ./backend/.env
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      DATABASE_URL: postgresql+asyncpg://thesis:thesis_dev@postgres:5432/thesis_engine
+      REDIS_URL: redis://redis:6379/0
+
+  celery-beat:
+    build: ./backend
+    command: celery -A app.tasks.celery_app beat --loglevel=info
+    env_file: ./backend/.env
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      DATABASE_URL: postgresql+asyncpg://thesis:thesis_dev@postgres:5432/thesis_engine
+      REDIS_URL: redis://redis:6379/0
+
 volumes:
   pgdata:
   redisdata:

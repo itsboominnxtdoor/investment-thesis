@@ -1,5 +1,24 @@
+import json
+import os
+
 from pydantic import model_validator
 from pydantic_settings import BaseSettings
+
+
+def _parse_cors_origins() -> list[str]:
+    """Parse CORS_ORIGINS from env var (JSON array or comma-separated string)."""
+    raw = os.environ.get("CORS_ORIGINS", "")
+    if not raw:
+        return ["http://localhost:3000"]
+    # Try JSON array first: '["https://example.com","http://localhost:3000"]'
+    try:
+        parsed = json.loads(raw)
+        if isinstance(parsed, list):
+            return [s.strip() for s in parsed if s.strip()]
+    except (json.JSONDecodeError, TypeError):
+        pass
+    # Fall back to comma-separated: "https://example.com,http://localhost:3000"
+    return [s.strip() for s in raw.split(",") if s.strip()]
 
 
 class Settings(BaseSettings):
@@ -32,7 +51,25 @@ class Settings(BaseSettings):
     FINANCIAL_DATA_API_KEY: str = ""
     FMP_API_BASE_URL: str = "https://financialmodelingprep.com"
 
-    CORS_ORIGINS: list[str] = ["http://localhost:3000"]
+    # Parsed from env: JSON array or comma-separated string
+    # Set CORS_ORIGINS="*" to allow all origins (dev), or
+    # CORS_ORIGINS="https://your-app.vercel.app,http://localhost:3000" for production
+    CORS_ORIGINS: list[str] = _parse_cors_origins()
+
+    # API key authentication (comma-separated list of valid keys)
+    # Leave empty to disable auth (open access, fine for local dev)
+    API_KEYS: list[str] = []
+
+    @model_validator(mode="after")
+    def _parse_api_keys(self):
+        raw = os.environ.get("API_KEYS", "")
+        if raw:
+            self.API_KEYS = [k.strip() for k in raw.split(",") if k.strip()]
+        return self
+
+    # Logging
+    LOG_FORMAT: str = "json"  # "json" for production, "text" for dev
+    LOG_LEVEL: str = "INFO"
 
 
 settings = Settings()

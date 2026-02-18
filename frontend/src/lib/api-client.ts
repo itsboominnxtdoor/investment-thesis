@@ -21,6 +21,19 @@ async function fetchJSON<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+// Dashboard Stats
+export interface DashboardStats {
+  total_companies: number;
+  companies_with_financials: number;
+  companies_with_thesis: number;
+  sectors: Record<string, number>;
+  exchanges: Record<string, number>;
+}
+
+export function getDashboardStats() {
+  return fetchJSON<DashboardStats>("/api/v1/companies/stats");
+}
+
 // Companies
 export function listCompanies(params?: {
   page?: number;
@@ -109,6 +122,12 @@ export function listQuarterlyUpdates(companyId: string, params?: { page?: number
   return fetchJSON<PaginatedResponse<QuarterlyUpdate>>(
     `/api/v1/companies/${companyId}/quarterly-updates${qs ? `?${qs}` : ""}`
   );
+}
+
+export function generateQuarterlyUpdate(companyId: string) {
+  return fetchJSON<QuarterlyUpdate>(`/api/v1/companies/${companyId}/quarterly-updates/generate`, {
+    method: "POST",
+  });
 }
 
 // Documents

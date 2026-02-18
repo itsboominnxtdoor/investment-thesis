@@ -41,12 +41,13 @@ class FinancialIngestionService:
             raise ValueError(f"Company {company_id} not found")
 
         ticker = company.ticker
+        fmp_ticker = self.fmp.resolve_fmp_ticker(ticker, company.exchange)
 
         # Fetch all 4 data sources in parallel-ish (sequential for simplicity)
-        income_data = await self.fmp.get_income_statement(ticker)
-        balance_data = await self.fmp.get_balance_sheet(ticker)
-        cashflow_data = await self.fmp.get_cash_flow(ticker)
-        segments_data = await self.fmp.get_segments(ticker)
+        income_data = await self.fmp.get_income_statement(fmp_ticker)
+        balance_data = await self.fmp.get_balance_sheet(fmp_ticker)
+        cashflow_data = await self.fmp.get_cash_flow(fmp_ticker)
+        segments_data = await self.fmp.get_segments(fmp_ticker)
 
         if not income_data:
             raise ValueError(f"No income statement data available for {ticker}")

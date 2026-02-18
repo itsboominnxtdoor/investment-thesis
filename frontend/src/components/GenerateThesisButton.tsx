@@ -2,10 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Button } from "./ui/Button";
 
 interface Props {
   companyId: string;
-  action: "thesis" | "profile" | "financials";
+  action: "thesis" | "profile" | "financials" | "quarterly";
   label: string;
 }
 
@@ -13,6 +14,7 @@ const ACTION_URLS: Record<Props["action"], (id: string) => string> = {
   thesis: (id) => `/api/v1/companies/${id}/thesis/generate`,
   profile: (id) => `/api/v1/companies/${id}/business-profile/generate`,
   financials: (id) => `/api/v1/companies/${id}/financials/ingest`,
+  quarterly: (id) => `/api/v1/companies/${id}/quarterly-updates/generate`,
 };
 
 export function GenerateButton({ companyId, action, label }: Props) {
@@ -45,14 +47,17 @@ export function GenerateButton({ companyId, action, label }: Props) {
 
   return (
     <div>
-      <button
+      <Button
         onClick={handleClick}
-        disabled={loading}
-        className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+        loading={loading}
+        variant="primary"
+        size="sm"
       >
         {loading ? "Generating..." : label}
-      </button>
-      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+      </Button>
+      {error && (
+        <p className="mt-2 text-sm text-red-500">{error}</p>
+      )}
     </div>
   );
 }

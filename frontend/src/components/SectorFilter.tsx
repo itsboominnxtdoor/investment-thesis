@@ -6,16 +6,16 @@ import { useRouter, useSearchParams } from "next/navigation";
 const SECTORS = [
   "All Sectors",
   "Technology",
-  "Healthcare",
   "Financials",
-  "Consumer Discretionary",
-  "Consumer Staples",
-  "Energy",
+  "Healthcare",
+  "Consumer Defensive",
+  "Consumer Cyclical",
   "Industrials",
-  "Materials",
+  "Energy",
+  "Communication Services",
   "Real Estate",
   "Utilities",
-  "Communication Services",
+  "Materials",
 ];
 
 function SectorFilterInner() {
@@ -35,17 +35,27 @@ function SectorFilterInner() {
   }
 
   return (
-    <select
-      value={current}
-      onChange={handleChange}
-      className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-    >
-      {SECTORS.map((sector) => (
-        <option key={sector} value={sector === "All Sectors" ? "" : sector}>
-          {sector}
-        </option>
-      ))}
-    </select>
+    <div className="relative">
+      <select
+        value={current}
+        onChange={handleChange}
+        className="appearance-none rounded-full border border-[var(--color-border-light)] bg-[var(--color-surface)] py-2.5 pl-4 pr-10 text-sm text-[var(--color-text-primary)] transition-all duration-200 focus:border-[var(--color-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 hover:border-[var(--color-border)] cursor-pointer"
+      >
+        {SECTORS.map((sector) => (
+          <option key={sector} value={sector === "All Sectors" ? "" : sector}>
+            {sector}
+          </option>
+        ))}
+      </select>
+      <svg 
+        className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-tertiary)]" 
+        fill="none" 
+        viewBox="0 0 24 24" 
+        stroke="currentColor"
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+      </svg>
+    </div>
   );
 }
 

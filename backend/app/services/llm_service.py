@@ -1,5 +1,6 @@
 """LLM service for thesis generation and analysis using Groq (Llama 3)."""
 
+import asyncio
 import json
 import logging
 from pathlib import Path
@@ -18,13 +19,31 @@ def _load_prompt(name: str) -> str:
 
 
 def _parse_json_response(text: str) -> dict:
-    """Extract JSON from LLM response, handling markdown fences."""
+    """Extract JSON from LLM response, handling markdown fences and extra text."""
     text = text.strip()
+    
+    # Find JSON block - look for { or [
+    start = text.find('{')
+    if start == -1:
+        start = text.find('[')
+    if start == -1:
+        raise json.JSONDecodeError("No JSON found", text, 0)
+    
+    # Find matching close
+    end = text.rfind('}')
+    end_bracket = text.rfind(']')
+    end = max(end, end_bracket)
+    if end == -1:
+        raise json.JSONDecodeError("No closing bracket", text, len(text))
+    
+    text = text[start:end+1]
+    
+    # Strip markdown fences
     if text.startswith("```"):
-        # Remove markdown code fences
         lines = text.splitlines()
         lines = [l for l in lines if not l.strip().startswith("```")]
         text = "\n".join(lines)
+    
     return json.loads(text)
 
 
@@ -35,17 +54,25 @@ class LLMService:
         self.model = settings.LLM_MODEL
         self.client = AsyncGroq(api_key=settings.GROQ_API_KEY)
 
-    async def _call(self, system: str, user_prompt: str, temperature: float = 0.3) -> str:
-        chat_completion = await self.client.chat.completions.create(
-            model=self.model,
-            max_tokens=4096,
-            temperature=temperature,
-            messages=[
-                {"role": "system", "content": system},
-                {"role": "user", "content": user_prompt},
-            ],
-        )
-        return chat_completion.choices[0].message.content
+    async def _call(self, system: str, user_prompt: str, temperature: float = 0.3, retries: int = 2) -> str:
+        """Call LLM with retry on failure."""
+        for attempt in range(retries + 1):
+            try:
+                chat_completion = await self.client.chat.completions.create(
+                    model=self.model,
+                    max_tokens=4096,
+                    temperature=temperature,
+                    messages=[
+                        {"role": "system", "content": system},
+                        {"role": "user", "content": user_prompt},
+                    ],
+                )
+                return chat_completion.choices[0].message.content
+            except Exception as e:
+                if attempt == retries:
+                    raise
+                logger.warning(f"LLM call failed (attempt {attempt + 1}): {e}")
+                await asyncio.sleep(2 ** attempt)  # Exponential backoff
 
     async def generate_business_profile(self, company_data: dict, filing_text: str) -> dict:
         """Generate a structured business profile from filing data."""
