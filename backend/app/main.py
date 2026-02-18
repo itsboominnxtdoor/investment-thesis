@@ -51,7 +51,7 @@ limiter = Limiter(key_func=get_remote_address)
 
 # ---- App ----
 
-app = FastAPI(title="Thesis Engine", version="0.1.0", docs_url="/docs", redoc_url="/redoc")
+app = FastAPI(title="Thesis Engine", version="0.1.0", docs_url="/docs", redoc_url="/redoc", timeout=300)
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
@@ -70,18 +70,30 @@ app.add_middleware(
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     start = time.time()
-    response = await call_next(request)
-    duration_ms = (time.time() - start) * 1000
-    logger.info(
-        "request",
-        extra={
-            "method": request.method,
-            "path": request.url.path,
-            "status": response.status_code,
-            "duration_ms": round(duration_ms, 1),
-        },
-    )
-    return response
+    try:
+        response = await call_next(request)
+        duration_ms = (time.time() - start) * 1000
+        logger.info(
+            "request",
+            extra={
+                "method": request.method,
+                "path": request.url.path,
+                "status": response.status_code,
+                "duration_ms": round(duration_ms, 1),
+            },
+        )
+        return response
+    except Exception as e:
+        duration_ms = (time.time() - start) * 1000
+        logger.exception(
+            "request_error",
+            extra={
+                "method": request.method,
+                "path": request.url.path,
+                "duration_ms": round(duration_ms, 1),
+            },
+        )
+        raise
 
 
 # ---- Routes ----

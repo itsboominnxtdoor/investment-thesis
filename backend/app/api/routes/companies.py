@@ -173,9 +173,10 @@ class BulkResult(BaseModel):
 
 @router.post("/bulk-ingest", response_model=BulkResult)
 async def bulk_ingest(db: DBSession):
-    """Dispatch Celery ingestion tasks for all active companies.
-
-    Falls back to synchronous processing if Celery is not available.
+    """Ingest financials for all active companies (no Celery needed).
+    
+    This is a synchronous operation - may take 30-60 seconds for 40 companies.
+    Each company: fetch FMP data → create snapshot → generate thesis.
     """
     result = await db.execute(
         select(Company).where(Company.is_active.is_(True))
@@ -184,20 +185,75 @@ async def bulk_ingest(db: DBSession):
 
     dispatched = 0
     errors: list[str] = []
+    
+    ingestion = FinancialIngestionService(db)
+    llm = LLMService()
+    fin_service = FinancialService(db)
 
-    try:
-        from app.tasks.quarterly_ingestion import process_company_filing
-        for company in companies:
-            try:
-                process_company_filing.delay(str(company.id), {
-                    "form_type": "10-Q",
-                    "source": "manual-bulk",
-                })
+    for company in companies:
+        try:
+            # Skip if already has financials
+            existing = await db.execute(
+                select(FinancialSnapshot).where(
+                    FinancialSnapshot.company_id == company.id
+                ).limit(1)
+            )
+            if existing.scalar_one_or_none():
                 dispatched += 1
-            except Exception as e:
-                errors.append(f"{company.ticker}: {e}")
-    except ImportError:
-        errors.append("Celery not available — use /ingest per company instead")
+                continue
+            
+            # Ingest financials
+            snapshot = await ingestion.ingest_latest_financials(company.id)
+            
+            # Generate thesis
+            company_data = {
+                "name": company.name,
+                "ticker": company.ticker,
+                "sector": company.sector,
+                "industry": company.industry,
+            }
+            snapshot_data = {
+                "revenue": str(snapshot.revenue) if snapshot.revenue else "N/A",
+                "net_income": str(snapshot.net_income) if snapshot.net_income else "N/A",
+                "ebitda": str(snapshot.ebitda) if snapshot.ebitda else "N/A",
+                "eps_diluted": str(snapshot.eps_diluted) if snapshot.eps_diluted else "N/A",
+                "gross_margin": str(snapshot.gross_margin) if snapshot.gross_margin else "N/A",
+                "operating_margin": str(snapshot.operating_margin) if snapshot.operating_margin else "N/A",
+                "free_cash_flow": str(snapshot.free_cash_flow) if snapshot.free_cash_flow else "N/A",
+                "total_debt": str(snapshot.total_debt) if snapshot.total_debt else "N/A",
+                "cash_and_equivalents": str(snapshot.cash_and_equivalents) if snapshot.cash_and_equivalents else "N/A",
+                "debt_to_equity": str(snapshot.debt_to_equity) if snapshot.debt_to_equity else "N/A",
+            }
+            result_data = await llm.generate_thesis(company_data, snapshot_data, {})
+            
+            # Save thesis
+            from app.models.thesis_version import ThesisVersion as TV
+            from decimal import Decimal
+            
+            thesis = TV(
+                company_id=company.id,
+                snapshot_id=snapshot.id,
+                version=1,
+                bull_case=result_data.get("bull_case", ""),
+                bull_target=Decimal(str(result_data["bull_target"])) if result_data.get("bull_target") else None,
+                base_case=result_data.get("base_case", ""),
+                base_target=Decimal(str(result_data["base_target"])) if result_data.get("base_target") else None,
+                bear_case=result_data.get("bear_case", ""),
+                bear_target=Decimal(str(result_data["bear_target"])) if result_data.get("bear_target") else None,
+                key_drivers=result_data.get("key_drivers", "[]"),
+                key_risks=result_data.get("key_risks", "[]"),
+                catalysts=result_data.get("catalysts", "[]"),
+                thesis_integrity_score=Decimal(str(result_data["thesis_integrity_score"])) if result_data.get("thesis_integrity_score") else None,
+                integrity_rationale=result_data.get("integrity_rationale"),
+                llm_model_used="llama-3.3-70b-versatile",
+            )
+            db.add(thesis)
+            await db.commit()
+            dispatched += 1
+        except Exception as e:
+            logger.exception("Failed to ingest %s", company.ticker)
+            errors.append(f"{company.ticker}: {e}")
+            await db.rollback()
 
     return BulkResult(dispatched=dispatched, errors=errors)
 
