@@ -13,9 +13,10 @@ class FinancialDataService:
 
     def __init__(self):
         self.base_url = "https://www.alphavantage.co"
-        # Free API key (get yours at https://www.alphavantage.co/support/#api-key)
-        # For production, set ALPHA_VANTAGE_API_KEY in environment
-        self.api_key = "demo"  # Demo key has limited calls
+        # Get free API key at: https://www.alphavantage.co/support/#api-key
+        # Set ALPHA_VANTAGE_API_KEY in Railway environment variables
+        from app.config import settings
+        self.api_key = getattr(settings, 'ALPHA_VANTAGE_API_KEY', 'demo')
 
     @staticmethod
     def resolve_fmp_ticker(ticker: str, exchange: str | None = None) -> str:
