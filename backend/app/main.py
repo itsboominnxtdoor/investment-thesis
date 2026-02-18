@@ -51,7 +51,14 @@ limiter = Limiter(key_func=get_remote_address)
 
 # ---- App ----
 
-app = FastAPI(title="Thesis Engine", version="0.1.0", docs_url="/docs", redoc_url="/redoc", timeout=300)
+app = FastAPI(
+    title="drft",
+    description="⚡ Lightning-fast equity research. Institutional-grade thesis generation in seconds.",
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    timeout=300,
+)
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
