@@ -42,14 +42,18 @@ class Settings(BaseSettings):
     GROQ_API_KEY: str = ""
     LLM_MODEL: str = "llama-3.3-70b-versatile"
 
+    # Yahoo Finance (free, no API key needed)
+    FINANCIAL_DATA_API_KEY: str = ""  # Not needed for Yahoo Finance
+    FMP_API_BASE_URL: str = "https://financialmodelingprep.com"  # Legacy, kept for compatibility
+
+    # S3 Storage (for filing documents)
     S3_BUCKET_NAME: str = "thesis-engine-docs"
     S3_REGION: str = "us-east-1"
     AWS_ACCESS_KEY_ID: str = ""
     AWS_SECRET_ACCESS_KEY: str = ""
 
+    # SEC EDGAR (required for US companies)
     EDGAR_USER_AGENT: str = "ThesisEngine admin@example.com"
-    FINANCIAL_DATA_API_KEY: str = ""
-    FMP_API_BASE_URL: str = "https://financialmodelingprep.com"
 
     # Parsed from env: JSON array or comma-separated string
     # Set CORS_ORIGINS="*" to allow all origins (dev), or

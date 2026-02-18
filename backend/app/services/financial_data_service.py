@@ -1,99 +1,103 @@
-"""External financial data API service using Financial Modeling Prep (FMP)."""
+"""External financial data API service using Yahoo Finance."""
 
 import logging
 
 import httpx
 
-from app.config import settings
-
 logger = logging.getLogger(__name__)
 
 
 class FinancialDataService:
-    """Pulls structured financial data from FMP (income statement, balance sheet, cash flow)."""
+    """Pulls structured financial data from Yahoo Finance (free, no API key required)."""
 
     def __init__(self):
-        self.api_key = settings.FINANCIAL_DATA_API_KEY
-        self.base_url = settings.FMP_API_BASE_URL
+        self.base_url = "https://query1.finance.yahoo.com"
 
     @staticmethod
     def resolve_fmp_ticker(ticker: str, exchange: str | None = None) -> str:
-        """Resolve a ticker to FMP format. TSX tickers need a .TO suffix."""
+        """Resolve ticker for Yahoo Finance. TSX tickers need .TO suffix."""
         if exchange == "TSX":
-            # Strip existing .TO suffix to avoid double-appending
             base = ticker.removesuffix(".TO")
-            # FMP uses .TO for TSX tickers; handle special TSX suffixes
-            base = base.replace(".UN", "-UN").replace(".B", "-B")
             return f"{base}.TO"
         return ticker
 
     def _client(self) -> httpx.AsyncClient:
-        return httpx.AsyncClient(base_url=self.base_url, timeout=30.0)
+        return httpx.AsyncClient(base_url=self.base_url, timeout=30.0, headers={
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        })
 
     async def _get(self, path: str, params: dict | None = None) -> list | dict:
-        params = params or {}
-        params["apikey"] = self.api_key
         async with self._client() as client:
-            resp = await client.get(path, params=params)
+            resp = await client.get(path, params=params or {})
             if resp.status_code == 429:
-                raise RuntimeError("FMP rate limit exceeded. Try again later.")
+                raise RuntimeError("Yahoo Finance rate limit exceeded. Try again later.")
             resp.raise_for_status()
-            data = resp.json()
-            if isinstance(data, dict) and "Error Message" in data:
-                raise ValueError(f"FMP API error: {data['Error Message']}")
-            return data
+            return resp.json()
 
     async def get_income_statement(self, ticker: str, period: str = "quarterly") -> list[dict]:
-        """Fetch income statement data from FMP."""
-        data = await self._get(
-            f"/api/v3/income-statement/{ticker}",
-            {"period": period, "limit": 4},
-        )
-        if not data:
-            return []
-        return [self._map_income(item) for item in data]
-
-    async def get_balance_sheet(self, ticker: str, period: str = "quarterly") -> list[dict]:
-        """Fetch balance sheet data from FMP."""
-        data = await self._get(
-            f"/api/v3/balance-sheet-statement/{ticker}",
-            {"period": period, "limit": 4},
-        )
-        if not data:
-            return []
-        return [self._map_balance(item) for item in data]
-
-    async def get_cash_flow(self, ticker: str, period: str = "quarterly") -> list[dict]:
-        """Fetch cash flow statement data from FMP."""
-        data = await self._get(
-            f"/api/v3/cash-flow-statement/{ticker}",
-            {"period": period, "limit": 4},
-        )
-        if not data:
-            return []
-        return [self._map_cashflow(item) for item in data]
-
-    async def get_segments(self, ticker: str) -> list[dict]:
-        """Fetch revenue product segmentation from FMP v4."""
+        """Fetch income statement from Yahoo Finance."""
         try:
             data = await self._get(
-                "/api/v4/revenue-product-segmentation",
-                {"symbol": ticker, "structure": "flat"},
+                f"/v10/finance/quoteSummary/{ticker}",
+                {"modules": "incomeStatementHistory,incomeStatementHistoryQuarterly"}
             )
+            result = data.get("quoteSummary", {}).get("result", [{}])[0]
+            if period == "quarterly":
+                statements = result.get("incomeStatementHistoryQuarterly", {}).get("incomeStatementHistory", [])
+            else:
+                statements = result.get("incomeStatementHistory", {}).get("incomeStatementHistory", [])
+            return [self._map_income(item) for item in (statements[:4] if statements else [])]
+        except Exception as e:
+            logger.warning("Yahoo income statement failed for %s: %s", ticker, e)
+            return []
+
+    async def get_balance_sheet(self, ticker: str, period: str = "quarterly") -> list[dict]:
+        """Fetch balance sheet from Yahoo Finance."""
+        try:
+            data = await self._get(
+                f"/v10/finance/quoteSummary/{ticker}",
+                {"modules": "balanceSheetHistory,balanceSheetHistoryQuarterly"}
+            )
+            result = data.get("quoteSummary", {}).get("result", [{}])[0]
+            if period == "quarterly":
+                statements = result.get("balanceSheetHistoryQuarterly", {}).get("balanceSheetStatements", [])
+            else:
+                statements = result.get("balanceSheetHistory", {}).get("balanceSheetStatements", [])
+            return [self._map_balance(item) for item in (statements[:4] if statements else [])]
+        except Exception as e:
+            logger.warning("Yahoo balance sheet failed for %s: %s", ticker, e)
+            return []
+
+    async def get_cash_flow(self, ticker: str, period: str = "quarterly") -> list[dict]:
+        """Fetch cash flow from Yahoo Finance."""
+        try:
+            data = await self._get(
+                f"/v10/finance/quoteSummary/{ticker}",
+                {"modules": "cashflowStatementHistory,cashflowStatementHistoryQuarterly"}
+            )
+            result = data.get("quoteSummary", {}).get("result", [{}])[0]
+            if period == "quarterly":
+                statements = result.get("cashflowStatementHistoryQuarterly", {}).get("cashflowStatements", [])
+            else:
+                statements = result.get("cashflowStatementHistory", {}).get("cashflowStatements", [])
+            return [self._map_cashflow(item) for item in (statements[:4] if statements else [])]
+        except Exception as e:
+            logger.warning("Yahoo cash flow failed for %s: %s", ticker, e)
+            return []
+
+    async def get_segments(self, ticker: str) -> list[dict]:
+        """Fetch segment data from Yahoo Finance."""
+        try:
+            data = await self._get(
+                f"/v10/finance/quoteSummary/{ticker}",
+                {"modules": "segment"}
+            )
+            result = data.get("quoteSummary", {}).get("result", [{}])[0]
+            segments = result.get("segment", {}).get("segment", [])
+            return [{"name": s.get("name", "Other"), "revenue": s.get("revenue", {}).get("raw", 0)} for s in (segments or [])]
         except Exception:
             logger.warning("Segments not available for %s", ticker)
             return []
-        if not data:
-            return []
-        # FMP returns a list of dicts, each with a date key and segment data
-        # Take the most recent period
-        latest = data[0] if data else {}
-        segments = []
-        for key, value in latest.items():
-            if key in ("date",):
-                continue
-            segments.append({"name": key, "revenue": value})
-        return segments
 
     @staticmethod
     def _map_income(item: dict) -> dict:
