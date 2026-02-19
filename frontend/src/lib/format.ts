@@ -1,10 +1,13 @@
 /**
  * Format a number as abbreviated currency (e.g. 1.2B, 340M, 12K).
  */
-export function formatCurrency(value: number | null, currency = "USD"): string {
+export function formatCurrency(value: number | string | null | undefined, currency = "USD"): string {
   if (value === null || value === undefined) return "—";
-  const abs = Math.abs(value);
-  const sign = value < 0 ? "-" : "";
+  const num = typeof value === "string" ? parseFloat(value) : value;
+  if (isNaN(num)) return "—";
+  
+  const abs = Math.abs(num);
+  const sign = num < 0 ? "-" : "";
   const sym = currency === "CAD" ? "C$" : "$";
 
   if (abs >= 1_000_000_000) return `${sign}${sym}${(abs / 1_000_000_000).toFixed(1)}B`;
@@ -16,9 +19,11 @@ export function formatCurrency(value: number | null, currency = "USD"): string {
 /**
  * Format a decimal ratio as a percentage string (e.g. 0.2534 -> "25.3%").
  */
-export function formatPercent(value: number | null): string {
+export function formatPercent(value: number | string | null | undefined): string {
   if (value === null || value === undefined) return "—";
-  return `${(value * 100).toFixed(1)}%`;
+  const num = typeof value === "string" ? parseFloat(value) : value;
+  if (isNaN(num)) return "—";
+  return `${(num * 100).toFixed(1)}%`;
 }
 
 /**
