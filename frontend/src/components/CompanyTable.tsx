@@ -2,6 +2,7 @@ import { listCompanies } from "@/lib/api-client";
 import type { Company } from "@/types";
 import { Badge } from "./ui/Badge";
 import { Pagination } from "./Pagination";
+import type { ReactNode } from "react";
 
 interface Props {
   searchParamsPromise: Promise<{
@@ -15,7 +16,7 @@ interface Props {
 /**
  * Sector icon mapping - each sector gets a unique icon and color
  */
-const SECTOR_ICONS: Record<string, { icon: JSX.Element; colors: string }> = {
+const SECTOR_ICONS: Record<string, { icon: ReactNode; colors: string }> = {
   // Technology
   Technology: {
     colors: "from-blue-500 to-cyan-500",
