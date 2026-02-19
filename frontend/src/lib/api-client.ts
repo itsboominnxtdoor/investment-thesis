@@ -8,7 +8,8 @@ import type {
   ThesisVersion,
 } from "@/types";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "";
+// Hardcoded Railway backend URL
+const API_BASE = "https://investment-thesis-production.up.railway.app";
 
 async function fetchJSON<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
