@@ -1,3 +1,7 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import { BusinessProfileView } from "@/components/BusinessProfileView";
 import { FinancialSnapshotView } from "@/components/FinancialSnapshot";
 import { QuarterlyTimeline } from "@/components/QuarterlyTimeline";
@@ -16,10 +20,7 @@ import {
   listQuarterlyUpdates,
   listThesisVersions,
 } from "@/lib/api-client";
-
-interface Props {
-  params: Promise<{ ticker: string }>;
-}
+import type { Company, BusinessProfile, FinancialSnapshot, ThesisVersion, QuarterlyUpdate, Document, PaginatedResponse } from "@/types";
 
 function ConvictionBadge({ direction }: { direction: string | null }) {
   if (!direction) return null;
@@ -40,13 +41,68 @@ function ConvictionBadge({ direction }: { direction: string | null }) {
   );
 }
 
-export default async function CompanyDetailPage({ params }: Props) {
-  const { ticker } = await params;
+export default function CompanyDetailPage() {
+  const params = useParams();
+  const ticker = params.ticker as string;
+  
+  const [company, setCompany] = useState<Company | null>(null);
+  const [financials, setFinancials] = useState<FinancialSnapshot | null>(null);
+  const [thesis, setThesis] = useState<ThesisVersion | null>(null);
+  const [profile, setProfile] = useState<BusinessProfile | null>(null);
+  const [quarterlyData, setQuarterlyData] = useState<PaginatedResponse<QuarterlyUpdate> | null>(null);
+  const [thesisHistory, setThesisHistory] = useState<PaginatedResponse<ThesisVersion> | null>(null);
+  const [documentsData, setDocumentsData] = useState<PaginatedResponse<Document> | null>(null);
+  const [allFinancials, setAllFinancials] = useState<PaginatedResponse<FinancialSnapshot> | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  let company;
-  try {
-    company = await getCompanyByTicker(ticker);
-  } catch {
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const companyData = await getCompanyByTicker(ticker);
+        setCompany(companyData);
+
+        // Parallel fetch - catch errors individually
+        const [financialsRes, thesisRes, profileRes, quarterlyRes, thesisHistoryRes, documentsRes, allFinancialsRes] =
+          await Promise.all([
+            getLatestFinancials(companyData.id).catch(() => null),
+            getLatestThesis(companyData.id).catch(() => null),
+            getBusinessProfile(companyData.id).catch(() => null),
+            listQuarterlyUpdates(companyData.id).catch(() => null),
+            listThesisVersions(companyData.id).catch(() => null),
+            listDocuments(companyData.id).catch(() => null),
+            listFinancials(companyData.id, { per_page: 20 }).catch(() => null),
+          ]);
+
+        setFinancials(financialsRes);
+        setThesis(thesisRes);
+        setProfile(profileRes);
+        setQuarterlyData(quarterlyRes);
+        setThesisHistory(thesisHistoryRes);
+        setDocumentsData(documentsRes);
+        setAllFinancials(allFinancialsRes);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load company");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadData();
+  }, [ticker]);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <div className="text-center">
+          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-amber-500 border-t-transparent"></div>
+          <p className="text-[var(--color-text-secondary)]">Loading company data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !company) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center py-12 text-center">
         <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-red-500 to-rose-600 shadow-lg">
@@ -54,26 +110,14 @@ export default async function CompanyDetailPage({ params }: Props) {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </div>
-        <h1 className="text-2xl font-bold text-gray-900">Company Not Found</h1>
-        <p className="mt-2 text-gray-500">No company with ticker &quot;{ticker.toUpperCase()}&quot; was found.</p>
-        <a href="/" className="mt-6 rounded-full bg-gray-900 px-6 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800">
+        <h1 className="text-2xl font-bold text-[var(--color-text-primary)]">Company Not Found</h1>
+        <p className="mt-2 text-[var(--color-text-secondary)]">No company with ticker &quot;{ticker.toUpperCase()}&quot; was found.</p>
+        <a href="/" className="mt-6 rounded-full bg-[var(--color-primary)] px-6 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--color-primary-hover)]">
           ← Back to Dashboard
         </a>
       </div>
     );
   }
-
-  // Parallel fetch - catch errors individually so partial data still renders
-  const [financials, thesis, profile, quarterlyData, thesisHistory, documentsData, allFinancials] =
-    await Promise.all([
-      getLatestFinancials(company.id).catch(() => null),
-      getLatestThesis(company.id).catch(() => null),
-      getBusinessProfile(company.id).catch(() => null),
-      listQuarterlyUpdates(company.id).catch(() => null),
-      listThesisVersions(company.id).catch(() => null),
-      listDocuments(company.id).catch(() => null),
-      listFinancials(company.id, { per_page: 20 }).catch(() => null),
-    ]);
 
   const snapshotsList = allFinancials?.items ?? [];
 
