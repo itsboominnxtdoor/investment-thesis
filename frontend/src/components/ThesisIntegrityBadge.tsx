@@ -16,17 +16,20 @@ export function ThesisIntegrityBadge({ score }: Props) {
     );
   }
 
+  // Backend returns Decimal as string; coerce to number for .toFixed()
+  const numScore = Number(score);
+
   let variant: "green" | "amber" | "red";
   let icon: React.ReactNode;
-  
-  if (score >= 8) {
+
+  if (numScore >= 8) {
     variant = "green";
     icon = (
       <svg className="mr-1 h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
       </svg>
     );
-  } else if (score >= 5) {
+  } else if (numScore >= 5) {
     variant = "amber";
     icon = (
       <svg className="mr-1 h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
@@ -45,7 +48,7 @@ export function ThesisIntegrityBadge({ score }: Props) {
   return (
     <Badge variant={variant} size="sm">
       {icon}
-      Integrity: {score.toFixed(1)}
+      Integrity: {numScore.toFixed(1)}
     </Badge>
   );
 }
