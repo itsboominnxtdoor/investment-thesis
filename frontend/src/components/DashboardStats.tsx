@@ -1,5 +1,27 @@
 import { getDashboardStats } from "@/lib/api-client";
-import { Stat, StatGrid } from "./ui/Stat";
+
+const SECTOR_COLORS: Record<string, string> = {
+  Technology: "from-blue-500 to-cyan-500",
+  Financials: "from-green-500 to-emerald-500",
+  Healthcare: "from-red-500 to-rose-500",
+  "Consumer Cyclical": "from-orange-500 to-amber-500",
+  "Consumer Defensive": "from-yellow-500 to-orange-500",
+  Energy: "from-lime-500 to-green-500",
+  Industrials: "from-slate-500 to-gray-500",
+  "Communication Services": "from-purple-500 to-pink-500",
+  "Real Estate": "from-indigo-500 to-blue-500",
+  Utilities: "from-cyan-500 to-blue-500",
+  "Basic Materials": "from-amber-600 to-yellow-600",
+};
+
+function StatPill({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div className="flex flex-col items-center justify-center rounded-2xl border border-[var(--color-border-light)] bg-[var(--color-surface)] px-5 py-4">
+      <span className="text-2xl font-black tabular-nums text-[var(--color-text-primary)]">{value}</span>
+      <span className="mt-1 text-[11px] font-medium uppercase tracking-widest text-[var(--color-text-tertiary)]">{label}</span>
+    </div>
+  );
+}
 
 export async function DashboardStats() {
   let stats;
@@ -9,44 +31,61 @@ export async function DashboardStats() {
     return null;
   }
 
+  const topSectors = Object.entries(stats.sectors)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 8);
+
+  const maxCount = topSectors[0]?.[1] ?? 1;
+
+  const coveragePct =
+    stats.total_companies > 0
+      ? Math.round((stats.companies_with_financials / stats.total_companies) * 100)
+      : 0;
+
+  const thesisPct =
+    stats.total_companies > 0
+      ? Math.round((stats.companies_with_thesis / stats.total_companies) * 100)
+      : 0;
+
   return (
-    <StatGrid>
-      <Stat 
-        label="Companies Tracked" 
-        value={stats.total_companies}
-        icon={
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-          </svg>
-        }
-      />
-      <Stat 
-        label="With Financials" 
-        value={stats.companies_with_financials}
-        icon={
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-          </svg>
-        }
-      />
-      <Stat 
-        label="With Thesis" 
-        value={stats.companies_with_thesis}
-        icon={
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-        }
-      />
-      <Stat
-        label="Top Exchange"
-        value={Object.entries(stats.exchanges)[0]?.[0] ?? "N/A"}
-        icon={
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        }
-      />
-    </StatGrid>
+    <div className="grid gap-4 lg:grid-cols-[auto_1fr]">
+      {/* Left — key metrics */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-2 lg:gap-3">
+        <StatPill label="Companies" value={stats.total_companies.toLocaleString()} />
+        <StatPill label="With Financials" value={`${coveragePct}%`} />
+        <StatPill label="With Thesis" value={`${thesisPct}%`} />
+        <StatPill
+          label="Top Exchange"
+          value={Object.entries(stats.exchanges).sort(([, a], [, b]) => b - a)[0]?.[0] ?? "—"}
+        />
+      </div>
+
+      {/* Right — sector breakdown */}
+      <div className="rounded-2xl border border-[var(--color-border-light)] bg-[var(--color-surface)] p-4">
+        <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-[var(--color-text-tertiary)]">
+          Sector Breakdown
+        </p>
+        <div className="space-y-2">
+          {topSectors.map(([sector, count]) => {
+            const pct = Math.round((count / maxCount) * 100);
+            const gradient = SECTOR_COLORS[sector] ?? "from-violet-500 to-purple-500";
+            return (
+              <div key={sector} className="flex items-center gap-3">
+                <span className="w-36 shrink-0 truncate text-xs text-[var(--color-text-secondary)]">{sector}</span>
+                <div className="flex-1 overflow-hidden rounded-full bg-[var(--color-border-light)]">
+                  <div
+                    className={`h-1.5 rounded-full bg-gradient-to-r ${gradient} transition-all duration-500`}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+                <span className="w-8 shrink-0 text-right text-xs tabular-nums text-[var(--color-text-tertiary)]">
+                  {count}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
   );
 }
