@@ -87,10 +87,10 @@ export interface BusinessProfile {
   description: string;
   business_model: string;
   competitive_position: string;
-  key_products: string;      // JSON-encoded string[]
+  key_products: string;      // JSON-encoded Record<string, number> — segment → revenue share
   geographic_mix: string;    // JSON-encoded Record<string, number>
   moat_assessment: string;
-  moat_sources: string;      // JSON-encoded string[]
+  moat_sources: string;      // plain-text moat grade rationale
   created_at: string;
 }
 

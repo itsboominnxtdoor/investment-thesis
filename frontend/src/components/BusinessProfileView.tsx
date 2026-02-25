@@ -28,9 +28,12 @@ export function BusinessProfileView({ profile }: Props) {
     );
   }
 
-  const keyProducts = safeParse<string[]>(profile.key_products, []);
+  const businessSegments = safeParse<Record<string, number>>(profile.key_products, {});
   const geographicMix = safeParse<Record<string, number>>(profile.geographic_mix, {});
-  const moatSources = safeParse<string[]>(profile.moat_sources, []);
+  // moat_sources is now a plain-text rationale string
+  const moatRationale = typeof profile.moat_sources === "string" && !profile.moat_sources.startsWith("[")
+    ? profile.moat_sources
+    : null;
 
   const moatColor =
     profile.moat_assessment === "wide"
@@ -99,15 +102,26 @@ export function BusinessProfileView({ profile }: Props) {
           <p className="text-sm leading-relaxed text-[var(--color-text-primary)]">{profile.competitive_position}</p>
         </div>
 
-        {keyProducts.length > 0 && (
+        {Object.keys(businessSegments).length > 0 && (
           <div>
-            <h4 className="mb-3 text-sm font-semibold text-[var(--color-text-secondary)]">Key Products & Services</h4>
-            <div className="flex flex-wrap gap-2">
-              {keyProducts.map((product) => (
-                <Badge key={product} variant="blue" size="md">
-                  {product}
-                </Badge>
-              ))}
+            <h4 className="mb-3 text-sm font-semibold text-[var(--color-text-secondary)]">Business Segments</h4>
+            <div className="space-y-2.5">
+              {Object.entries(businessSegments)
+                .sort(([, a], [, b]) => b - a)
+                .map(([segment, pct]) => (
+                  <div key={segment} className="flex items-center gap-3">
+                    <span className="w-36 truncate text-sm text-[var(--color-text-primary)]">{segment}</span>
+                    <div className="flex-1 overflow-hidden rounded-full bg-[var(--color-border-light)]">
+                      <div
+                        className="h-2 rounded-full bg-gradient-to-r from-violet-500 to-purple-500 transition-all duration-500"
+                        style={{ width: `${Math.min(Math.round(pct * 100), 100)}%` }}
+                      />
+                    </div>
+                    <span className="w-12 text-right text-sm font-medium text-[var(--color-text-secondary)]">
+                      {Math.round(pct * 100)}%
+                    </span>
+                  </div>
+                ))}
             </div>
           </div>
         )}
@@ -134,16 +148,16 @@ export function BusinessProfileView({ profile }: Props) {
           </div>
         )}
 
-        {moatSources.length > 0 && (
-          <div>
-            <h4 className="mb-3 text-sm font-semibold text-[var(--color-text-secondary)]">Moat Sources</h4>
-            <div className="flex flex-wrap gap-2">
-              {moatSources.map((source) => (
-                <Badge key={source} variant="green" size="md">
-                  {source}
-                </Badge>
-              ))}
-            </div>
+        {moatRationale && (
+          <div className="rounded-xl bg-gradient-to-br from-green-50 to-emerald-50 p-4 dark:from-green-900/20 dark:to-emerald-900/20">
+            <h4 className="mb-2 flex items-center gap-2 text-sm font-semibold text-green-700 dark:text-green-400">
+              <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              Moat Rationale
+              <Badge variant={moatColor} size="sm" className="ml-1">{profile.moat_assessment}</Badge>
+            </h4>
+            <p className="text-sm leading-relaxed text-[var(--color-text-primary)]">{moatRationale}</p>
           </div>
         )}
       </div>

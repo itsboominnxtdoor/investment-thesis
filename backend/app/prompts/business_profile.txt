@@ -12,9 +12,9 @@ Respond with a JSON object containing exactly these fields:
 - "description": A 2-3 paragraph overview of the company, its history, and market position.
 - "business_model": How the company generates revenue and profits. Be specific about revenue streams.
 - "competitive_position": Analysis of the company's position relative to peers, including market share insights.
-- "key_products": A JSON array of strings listing the company's major products/services/segments.
+- "key_products": A JSON object mapping each major business segment or product line to its approximate share of total revenue as a decimal (e.g., {{"iPhone": 0.52, "Services": 0.22, "Mac": 0.10, "iPad": 0.08, "Wearables & Other": 0.08}}). Use segment names as the company reports them. Percentages must sum to 1.0.
 - "geographic_mix": A JSON object mapping region names to approximate revenue percentage (e.g., {{"North America": 0.60, "Europe": 0.25, "Asia-Pacific": 0.15}}).
 - "moat_assessment": One of: "wide", "narrow", "none".
-- "moat_sources": A JSON array of strings describing the sources of competitive advantage (e.g., "brand", "network effects", "switching costs", "cost advantages", "intangible assets", "efficient scale").
+- "moat_sources": A 2-3 sentence rationale explaining how the moat grade was determined — cite specific evidence from the filing such as pricing power, switching costs, network effects, intangible assets, scale advantages, or lack thereof.
 
 Return ONLY the JSON object, no markdown fences or other text.

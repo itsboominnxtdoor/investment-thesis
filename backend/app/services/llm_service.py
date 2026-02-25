@@ -94,12 +94,17 @@ class LLMService:
         result = _parse_json_response(response)
 
         # Ensure JSON array/object fields are stored as JSON strings
-        if isinstance(result.get("key_products"), list):
+        # key_products is now a dict (segment → revenue share), geographic_mix same
+        if isinstance(result.get("key_products"), dict):
             result["key_products"] = json.dumps(result["key_products"])
+        elif isinstance(result.get("key_products"), list):
+            # Fallback: LLM returned a list — convert to equal-weight dict
+            items = result["key_products"]
+            weight = round(1 / len(items), 2) if items else 0
+            result["key_products"] = json.dumps({item: weight for item in items})
         if isinstance(result.get("geographic_mix"), dict):
             result["geographic_mix"] = json.dumps(result["geographic_mix"])
-        if isinstance(result.get("moat_sources"), list):
-            result["moat_sources"] = json.dumps(result["moat_sources"])
+        # moat_sources is now a plain-text rationale string — no serialization needed
 
         return result
 
