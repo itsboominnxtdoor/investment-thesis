@@ -6,12 +6,39 @@ interface Props {
   profile: BusinessProfile | null;
 }
 
-function safeParse<T>(json: string, fallback: T): T {
+/** Parse a segment/geo map stored as JSON, normalising to decimal fractions.
+ *  Handles three LLM output shapes:
+ *  1. {"iPhone": 0.52, "Services": 0.22}  — already decimal, returned as-is
+ *  2. {"iPhone": 52, "Services": 22}       — integers summing to ~100, divided by 100
+ *  3. ["iPhone", "Services"]               — old list format, returns null (hidden)
+ */
+function parseSegmentMap(raw: string | null | undefined): Record<string, number> | null {
+  if (!raw) return null;
+  let parsed: unknown;
   try {
-    return JSON.parse(json);
+    parsed = JSON.parse(raw);
   } catch {
-    return fallback;
+    return null;
   }
+  if (Array.isArray(parsed) || typeof parsed !== "object" || parsed === null) return null;
+
+  const entries = Object.entries(parsed as Record<string, unknown>);
+  if (entries.length === 0) return null;
+
+  // Coerce all values to numbers, drop non-numeric entries
+  const numeric: Record<string, number> = {};
+  for (const [k, v] of entries) {
+    const n = typeof v === "number" ? v : parseFloat(String(v));
+    if (!isNaN(n)) numeric[k] = n;
+  }
+  if (Object.keys(numeric).length === 0) return null;
+
+  // Normalise: if values sum to > 5, assume they are whole percentages (0-100)
+  const sum = Object.values(numeric).reduce((a, b) => a + b, 0);
+  if (sum > 5) {
+    return Object.fromEntries(Object.entries(numeric).map(([k, v]) => [k, v / 100]));
+  }
+  return numeric;
 }
 
 export function BusinessProfileView({ profile }: Props) {
@@ -28,8 +55,8 @@ export function BusinessProfileView({ profile }: Props) {
     );
   }
 
-  const businessSegments = safeParse<Record<string, number>>(profile.key_products, {});
-  const geographicMix = safeParse<Record<string, number>>(profile.geographic_mix, {});
+  const businessSegments = parseSegmentMap(profile.key_products);
+  const geographicMix = parseSegmentMap(profile.geographic_mix);
   // moat_sources is now a plain-text rationale string
   const moatRationale = typeof profile.moat_sources === "string" && !profile.moat_sources.startsWith("[")
     ? profile.moat_sources
@@ -102,7 +129,7 @@ export function BusinessProfileView({ profile }: Props) {
           <p className="text-sm leading-relaxed text-[var(--color-text-primary)]">{profile.competitive_position}</p>
         </div>
 
-        {Object.keys(businessSegments).length > 0 && (
+        {businessSegments && Object.keys(businessSegments).length > 0 && (
           <div>
             <h4 className="mb-3 text-sm font-semibold text-[var(--color-text-secondary)]">Business Segments</h4>
             <div className="space-y-2.5">
@@ -126,11 +153,11 @@ export function BusinessProfileView({ profile }: Props) {
           </div>
         )}
 
-        {Object.keys(geographicMix).length > 0 && (
+        {geographicMix && Object.keys(geographicMix).length > 0 && (
           <div>
             <h4 className="mb-3 text-sm font-semibold text-[var(--color-text-secondary)]">Geographic Mix</h4>
             <div className="space-y-2.5">
-              {Object.entries(geographicMix).map(([region, pct]) => (
+              {Object.entries(geographicMix!).map(([region, pct]) => (
                 <div key={region} className="flex items-center gap-3">
                   <span className="w-24 text-sm text-[var(--color-text-primary)]">{region}</span>
                   <div className="flex-1 overflow-hidden rounded-full bg-[var(--color-border-light)]">
