@@ -130,3 +130,13 @@ export interface PaginatedResponse<T> {
   page: number;
   per_page: number;
 }
+
+// StockQuote — maps to StockQuoteRead (backend/app/schemas/financial_snapshot.py)
+export interface StockQuote {
+  symbol: string;
+  price: number;
+  change: number;
+  change_pct: number;
+  prev_close: number;
+  latest_trading_day: string;
+}

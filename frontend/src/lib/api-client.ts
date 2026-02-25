@@ -5,6 +5,7 @@ import type {
   FinancialSnapshot,
   PaginatedResponse,
   QuarterlyUpdate,
+  StockQuote,
   ThesisVersion,
 } from "@/types";
 
@@ -129,6 +130,11 @@ export function generateQuarterlyUpdate(companyId: string) {
   return fetchJSON<QuarterlyUpdate>(`/api/v1/companies/${companyId}/quarterly-updates/generate`, {
     method: "POST",
   });
+}
+
+// Stock Quote
+export function getStockPrice(companyId: string) {
+  return fetchJSON<StockQuote>(`/api/v1/companies/${companyId}/price`);
 }
 
 // Documents

@@ -58,3 +58,12 @@ class FinancialSnapshotList(BaseModel):
     total: int
     page: int
     per_page: int
+
+
+class StockQuoteRead(BaseModel):
+    symbol: str
+    price: float
+    change: float
+    change_pct: float
+    prev_close: float
+    latest_trading_day: str

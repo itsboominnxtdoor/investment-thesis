@@ -137,6 +137,24 @@ class FinancialDataService:
             "total_debt": safe_int(item.get("totalDebt")),
         }
 
+    async def get_quote(self, ticker: str) -> dict | None:
+        """Fetch real-time quote from Alpha Vantage GLOBAL_QUOTE."""
+        try:
+            data = await self._get("GLOBAL_QUOTE", {"symbol": ticker})
+            q = data.get("Global Quote", {})
+            if not q or not q.get("05. price"):
+                return None
+            return {
+                "price": float(q["05. price"]),
+                "change": float(q["09. change"]),
+                "change_pct": float(q["10. change percent"].replace("%", "")),
+                "prev_close": float(q["08. previous close"]),
+                "latest_trading_day": q["07. latest trading day"],
+            }
+        except Exception as e:
+            logger.warning("Quote fetch failed for %s: %s", ticker, e)
+            return None
+
     @staticmethod
     def _map_cashflow_av(item: dict) -> dict:
         """Map Alpha Vantage cash flow format."""

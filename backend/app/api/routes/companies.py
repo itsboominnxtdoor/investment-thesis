@@ -10,7 +10,9 @@ from app.models.company import Company
 from app.models.financial_snapshot import FinancialSnapshot
 from app.models.thesis_version import ThesisVersion
 from app.schemas.company import CompanyList, CompanyRead
+from app.schemas.financial_snapshot import StockQuoteRead
 from app.services.company_service import CompanyService
+from app.services.financial_data_service import FinancialDataService
 from app.services.financial_ingestion_service import FinancialIngestionService
 from app.services.llm_service import LLMService
 from app.services.financial_service import FinancialService
@@ -110,6 +112,21 @@ async def get_company(db: DBSession, company_id: UUID):
             logger.warning("Auto-ingest failed for %s: %s", company.ticker, e)
     
     return company
+
+
+@router.get("/{company_id}/price", response_model=StockQuoteRead)
+async def get_stock_price(db: DBSession, company_id: UUID):
+    """Fetch live stock price for a company."""
+    service = CompanyService(db)
+    company = await service.get_by_id(company_id)
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+    fds = FinancialDataService()
+    ticker = fds.resolve_fmp_ticker(company.ticker, company.exchange)
+    quote = await fds.get_quote(ticker)
+    if not quote:
+        raise HTTPException(status_code=404, detail="Price unavailable")
+    return StockQuoteRead(symbol=ticker, **quote)
 
 
 @router.get("/ticker/{ticker}", response_model=CompanyRead)

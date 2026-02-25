@@ -15,12 +15,13 @@ import {
   getCompanyByTicker,
   getLatestFinancials,
   getLatestThesis,
+  getStockPrice,
   listDocuments,
   listFinancials,
   listQuarterlyUpdates,
   listThesisVersions,
 } from "@/lib/api-client";
-import type { Company, BusinessProfile, FinancialSnapshot, ThesisVersion, QuarterlyUpdate, Document, PaginatedResponse } from "@/types";
+import type { Company, BusinessProfile, FinancialSnapshot, ThesisVersion, QuarterlyUpdate, Document, PaginatedResponse, StockQuote } from "@/types";
 
 function ConvictionBadge({ direction }: { direction: string | null }) {
   if (!direction) return null;
@@ -46,6 +47,7 @@ export default function CompanyDetailPage() {
   const ticker = params.ticker as string;
   
   const [company, setCompany] = useState<Company | null>(null);
+  const [stockPrice, setStockPrice] = useState<StockQuote | null>(null);
   const [financials, setFinancials] = useState<FinancialSnapshot | null>(null);
   const [thesis, setThesis] = useState<ThesisVersion | null>(null);
   const [profile, setProfile] = useState<BusinessProfile | null>(null);
@@ -63,7 +65,7 @@ export default function CompanyDetailPage() {
         setCompany(companyData);
 
         // Parallel fetch - catch errors individually
-        const [financialsRes, thesisRes, profileRes, quarterlyRes, thesisHistoryRes, documentsRes, allFinancialsRes] =
+        const [financialsRes, thesisRes, profileRes, quarterlyRes, thesisHistoryRes, documentsRes, allFinancialsRes, stockPriceRes] =
           await Promise.all([
             getLatestFinancials(companyData.id).catch(() => null),
             getLatestThesis(companyData.id).catch(() => null),
@@ -72,6 +74,7 @@ export default function CompanyDetailPage() {
             listThesisVersions(companyData.id).catch(() => null),
             listDocuments(companyData.id).catch(() => null),
             listFinancials(companyData.id, { per_page: 20 }).catch(() => null),
+            getStockPrice(companyData.id).catch(() => null),
           ]);
 
         setFinancials(financialsRes);
@@ -81,6 +84,7 @@ export default function CompanyDetailPage() {
         setThesisHistory(thesisHistoryRes);
         setDocumentsData(documentsRes);
         setAllFinancials(allFinancialsRes);
+        setStockPrice(stockPriceRes);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load company");
       } finally {
@@ -144,6 +148,18 @@ export default function CompanyDetailPage() {
               <span className="text-gray-300">•</span>
               <span>{company.currency}</span>
             </p>
+            {stockPrice && (
+              <div className="mt-2 flex items-center gap-2">
+                <span className="text-xl font-bold text-gray-900 dark:text-white">
+                  ${stockPrice.price.toFixed(2)}
+                </span>
+                <span className={`text-sm font-medium ${stockPrice.change >= 0 ? "text-green-500" : "text-red-500"}`}>
+                  {stockPrice.change >= 0 ? "▲" : "▼"} {Math.abs(stockPrice.change).toFixed(2)}{" "}
+                  ({Math.abs(stockPrice.change_pct).toFixed(2)}%)
+                </span>
+                <span className="text-xs text-gray-400">· {stockPrice.latest_trading_day}</span>
+              </div>
+            )}
           </div>
 
           {/* Quick actions */}
