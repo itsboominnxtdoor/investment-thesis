@@ -6,8 +6,10 @@ from app.config import settings
 from app.dependencies import DBSession
 from app.schemas.thesis_version import ThesisVersionList, ThesisVersionRead
 from app.services.company_service import CompanyService
+from app.services.financial_data_service import FinancialDataService
 from app.services.financial_service import FinancialService
 from app.services.llm_service import LLMService
+from app.services.market_sentiment_service import MarketSentimentService
 from app.services.thesis_service import ThesisService
 
 router = APIRouter(prefix="/companies/{company_id}/thesis", tags=["thesis"])
@@ -74,9 +76,14 @@ async def get_latest_thesis(db: DBSession, company_id: UUID):
             "cash_and_equivalents": str(snapshot.cash_and_equivalents) if snapshot.cash_and_equivalents else "N/A",
             "debt_to_equity": str(snapshot.debt_to_equity) if snapshot.debt_to_equity else "N/A",
         }
-        
+
+        # Fetch live market sentiment to ground the thesis in real analyst views
+        fds = FinancialDataService()
+        resolved_ticker = fds.resolve_fmp_ticker(company.ticker, company.exchange)
+        market_context = await MarketSentimentService().get_market_context(resolved_ticker)
+
         try:
-            result = await llm.generate_thesis(company_data, snapshot_data, {})
+            result = await llm.generate_thesis(company_data, snapshot_data, {}, market_context=market_context)
             result["llm_model_used"] = settings.LLM_MODEL
             
             thesis_svc = ThesisService(db)
@@ -173,10 +180,15 @@ async def generate_thesis(db: DBSession, company_id: UUID):
             "bear_case": prior_thesis.bear_case,
         }
 
+    # Fetch live market sentiment to ground the thesis in real analyst views
+    fds = FinancialDataService()
+    resolved_ticker = fds.resolve_fmp_ticker(company.ticker, company.exchange)
+    market_context = await MarketSentimentService().get_market_context(resolved_ticker)
+
     llm = LLMService()
     try:
         result = await llm.generate_thesis(
-            company_data, snapshot_data, profile_data, prior_thesis_data
+            company_data, snapshot_data, profile_data, prior_thesis_data, market_context=market_context
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"LLM generation failed: {e}")

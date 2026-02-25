@@ -18,19 +18,24 @@ FINANCIAL SNAPSHOT (Most Recent Quarter):
 BUSINESS PROFILE:
 {business_profile}
 
+MARKET SENTIMENT & ANALYST CONTEXT:
+{market_context_section}
+
 {prior_thesis_section}
 
-Generate a three-scenario investment thesis. Respond with a JSON object containing exactly these fields:
-- "bull_case": A 2-3 paragraph narrative of the optimistic scenario, with specific catalysts and assumptions.
+Generate a three-scenario investment thesis. Use the analyst commentary and news sentiment above to ground each scenario in real market thinking — the bull case should draw on bullish themes from the news, the bear case on bearish concerns, and the base case on the consensus view. If an analyst consensus target price is provided, use it as an anchor for your base case price target.
+
+Respond with a JSON object containing exactly these fields:
+- "bull_case": A 2-3 paragraph narrative of the optimistic scenario, with specific catalysts and assumptions drawn from analyst commentary above.
 - "bull_target": Estimated fair value per share in the bull scenario (number, no currency symbol).
-- "base_case": A 2-3 paragraph narrative of the most likely scenario.
+- "base_case": A 2-3 paragraph narrative of the most likely scenario, anchored to the analyst consensus where available.
 - "base_target": Estimated fair value per share in the base scenario (number).
-- "bear_case": A 2-3 paragraph narrative of the pessimistic scenario, with specific risks.
+- "bear_case": A 2-3 paragraph narrative of the pessimistic scenario, with specific risks highlighted in recent news.
 - "bear_target": Estimated fair value per share in the bear scenario (number).
 - "key_drivers": A JSON array of 4-6 strings describing the main growth/value drivers.
 - "key_risks": A JSON array of 4-6 strings describing the main risk factors.
 - "catalysts": A JSON array of 3-5 strings describing near-term catalysts (positive or negative).
-- "thesis_integrity_score": A number from 0-100 rating how well-supported the thesis is by available data.
+- "thesis_integrity_score": A number from 0-100 rating how well-supported the thesis is by available data and analyst context.
 - "integrity_rationale": A brief explanation of the integrity score.
 {drift_fields}
 

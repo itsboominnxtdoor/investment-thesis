@@ -14,8 +14,9 @@ from app.schemas.financial_snapshot import StockQuoteRead
 from app.services.company_service import CompanyService
 from app.services.financial_data_service import FinancialDataService
 from app.services.financial_ingestion_service import FinancialIngestionService
-from app.services.llm_service import LLMService
 from app.services.financial_service import FinancialService
+from app.services.llm_service import LLMService
+from app.services.market_sentiment_service import MarketSentimentService
 
 logger = logging.getLogger(__name__)
 
@@ -192,7 +193,9 @@ async def ingest_company(db: DBSession, company_id: UUID):
                 "cash_and_equivalents": str(snapshot.cash_and_equivalents) if snapshot.cash_and_equivalents else "N/A",
                 "debt_to_equity": str(snapshot.debt_to_equity) if snapshot.debt_to_equity else "N/A",
             }
-            thesis_result = await llm.generate_thesis(company_data, snapshot_data, {})
+            resolved_ticker = FinancialDataService().resolve_fmp_ticker(company.ticker, company.exchange)
+            market_context = await MarketSentimentService().get_market_context(resolved_ticker)
+            thesis_result = await llm.generate_thesis(company_data, snapshot_data, {}, market_context=market_context)
             steps_completed.append("thesis")
         except Exception as e:
             logger.exception("Thesis generation failed for %s", company.ticker)

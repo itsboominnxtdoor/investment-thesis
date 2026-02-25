@@ -109,6 +109,7 @@ class LLMService:
         financial_snapshot: dict,
         business_profile: dict,
         prior_thesis: dict | None = None,
+        market_context: dict | None = None,
     ) -> dict:
         """Generate a three-scenario investment thesis."""
         prompt_template = _load_prompt("thesis_generation.txt")
@@ -136,6 +137,11 @@ class LLMService:
             f"Moat: {business_profile.get('moat_assessment', 'N/A')}"
         )
 
+        # Format market context for prompt
+        from app.services.market_sentiment_service import MarketSentimentService
+        mss = MarketSentimentService()
+        market_context_section = mss.format_for_prompt(market_context or {})
+
         prompt = prompt_template.format(
             company_name=company_data.get("name", ""),
             ticker=company_data.get("ticker", ""),
@@ -152,6 +158,7 @@ class LLMService:
             cash=financial_snapshot.get("cash_and_equivalents", "N/A"),
             debt_to_equity=financial_snapshot.get("debt_to_equity", "N/A"),
             business_profile=bp_text,
+            market_context_section=market_context_section,
             prior_thesis_section=prior_thesis_section,
             drift_fields=drift_fields,
         )
